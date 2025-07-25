@@ -7,9 +7,15 @@
 - [ ] Get ip and port from the server list
 - [ ] Get server details
 - [ ] User interface for displaying server list
+- [ ] Search functionality for server list
 - [ ] Button for refreshing, block all, unblock all
 - [ ] Button for block selected
 - [ ] Use iptable to temporarily block servers 
+
+## Optional Features
+- [ ] Import and export config
+- [ ] Save blocked servers to a file
+- [ ] Make a deb package for easy installation
 
 ---
 Last updated: July 25, 2025

@@ -1,0 +1,15 @@
+# CS2 Server Picker Linux - Todo List
+
+# Base Api: https://api.steampowered.com/ISteamApps/GetSDRConfig/v1/?appid=730
+
+## Core Features
+- [ ] Get server list from the API
+- [ ] Get ip and port from the server list
+- [ ] Get server details
+- [ ] User interface for displaying server list
+- [ ] Button for refreshing, block all, unblock all
+- [ ] Button for block selected
+- [ ] Use iptable to temporarily block servers 
+
+---
+Last updated: July 25, 2025

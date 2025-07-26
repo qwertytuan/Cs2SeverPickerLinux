@@ -3,7 +3,8 @@
 # Base Api: https://api.steampowered.com/ISteamApps/GetSDRConfig/v1/?appid=730
 
 ## Core Features
-- [ ] Get server list from the API
+- [X] Get server list from the API
+function: get_server_info()
 - [ ] Get ip and port from the server list
 - [ ] Get server details
 - [ ] User interface for displaying server list

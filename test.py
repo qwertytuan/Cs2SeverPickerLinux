@@ -3,12 +3,14 @@ gi.require_version('Gtk', '4.0')
 from gi.repository import Gtk
 import os
 import subprocess
+import requests
 
 class ourwindow(Gtk.ApplicationWindow):
 
     def __init__(self, application):
         super().__init__(application=application, title="Demonstration of PyObject GUI Application Creation")
         self.set_default_size(1920, 1080)
+        self.get_server_info()
 
         # Correct button creation for GTK 4
         button1 = Gtk.Button.new_with_label("Execute")
@@ -98,11 +100,18 @@ class ourwindow(Gtk.ApplicationWindow):
         store[path][3] = not store[path][3]
         print(f"Toggle button state changed for row {path}: {store[path][3]}")
     
-    def get_server_info(api='https://api.steampowered.com/ISteamApps/GetSDRConfig/v1/?appid=730'):
+    def get_server_info(self, api='https://api.steampowered.com/ISteamApps/GetSDRConfig/v1/?appid=730'):
         print("Get server list")
-        # use reqest to get json, strip it to have basic info: server id,server name, ips, ping
-        server_info_json = 
-        return server_info_json
+        try:
+            response = requests.get(api, timeout=20)
+            response.raise_for_status()  # Raise an exception for bad status codes
+            server_info_json = response.json()
+            print("Successfully fetched server info.")
+            return server_info_json
+        except requests.exceptions.RequestException as e:
+            print(f"Error fetching server info: {e}")
+            return None
+
 class MyApp(Gtk.Application):
 
     def __init__(self):

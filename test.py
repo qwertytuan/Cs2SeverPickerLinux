@@ -97,7 +97,12 @@ class ourwindow(Gtk.ApplicationWindow):
         # Toggle the state of the button for the selected row
         store[path][3] = not store[path][3]
         print(f"Toggle button state changed for row {path}: {store[path][3]}")
-
+    
+    def get_server_info(api='https://api.steampowered.com/ISteamApps/GetSDRConfig/v1/?appid=730'):
+        print("Get server list")
+        # use reqest to get json, strip it to have basic info: server id,server name, ips, ping
+        server_info_json = 
+        return server_info_json
 class MyApp(Gtk.Application):
 
     def __init__(self):

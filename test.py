@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 import gi
 gi.require_version('Gtk', '4.0')
-from gi.repository import Gtk
+from gi.repository import Gtk, Gdk
 import os
 import subprocess
 import requests
@@ -29,7 +29,8 @@ class ourwindow(Gtk.ApplicationWindow):
         
         # create a table view with test data
         # Create a ListStore with test data (all string columns except id and boolean)
-        store = Gtk.ListStore(int, str, str, str, str, bool)
+        # Added a color column for row highlighting and text color
+        store = Gtk.ListStore(int, str, str, str, str, bool, str, str)
         self.store = store  # Store reference for toggle all functionality
         server_data = self.serverData()
         if server_data:
@@ -38,27 +39,35 @@ class ourwindow(Gtk.ApplicationWindow):
                     key, name, ip_list, random_ip = server
                     # Convert IP list to string for display
                     ip_list_str = ', '.join(ip_list) if ip_list else "No IPs"
-                    store.append([i, key, name, ip_list_str, random_ip, False])
+                    # Add row with default dark background and white text
+                    store.append([i, key, name, ip_list_str, random_ip, False, "#202023", "white"])
         else:
             print("No server data available to display.")
             return
     
         # Create a TreeView and set its model
         tree = Gtk.TreeView(model=store)
+        
+        # Make column separations more visible
+        tree.set_grid_lines(Gtk.TreeViewGridLines.VERTICAL)
+        tree.set_enable_tree_lines(True)
+        
+        # Add rounded corners using CSS
+        self.apply_rounded_corners_css(tree)
 
         # Add columns to the TreeView
         renderer_text = Gtk.CellRendererText()
 
-        column_id = Gtk.TreeViewColumn("Id", renderer_text, text=0)
+        column_id = Gtk.TreeViewColumn("Id", renderer_text, text=0, background=6, foreground=7)
         tree.append_column(column_id)
 
-        column_key = Gtk.TreeViewColumn("Server Key", renderer_text, text=1)
+        column_key = Gtk.TreeViewColumn("Server Key", renderer_text, text=1, background=6, foreground=7)
         tree.append_column(column_key)
 
-        column_name = Gtk.TreeViewColumn("Server Name", renderer_text, text=2)
+        column_name = Gtk.TreeViewColumn("Server Name", renderer_text, text=2, background=6, foreground=7)
         tree.append_column(column_name)
         
-        column_random_ip = Gtk.TreeViewColumn("Random IP", renderer_text, text=4)
+        column_random_ip = Gtk.TreeViewColumn("Random IP", renderer_text, text=4, background=6, foreground=7)
         tree.append_column(column_random_ip)
 
         # Add a button column to the TreeView
@@ -67,6 +76,7 @@ class ourwindow(Gtk.ApplicationWindow):
         renderer_toggle.connect("toggled", self.on_toggle_toggled, store)
 
         column_toggle = Gtk.TreeViewColumn("Action", renderer_toggle, active=5)
+        column_toggle.add_attribute(renderer_toggle, "cell-background", 6)
         tree.append_column(column_toggle)
 
         # Create a ScrolledWindow for the TreeView to make it scrollable
@@ -117,6 +127,13 @@ class ourwindow(Gtk.ApplicationWindow):
         
         for row in self.store:
             row[5] = new_state
+            # Update row color based on selection state
+            if new_state:
+                row[6] = "lightcoral"  # Background color when selected
+                row[7] = "black"       # Text color when selected
+            else:
+                row[6] = "#202023"     # Default background color
+                row[7] = "white"       # Default text color
         
         # Update button text based on current state
         if new_state:
@@ -133,6 +150,14 @@ class ourwindow(Gtk.ApplicationWindow):
     def on_toggle_toggled(self, widget, path, store):
         # Toggle the state of the button for the selected row
         store[path][5] = not store[path][5]
+        # Update row color based on selection state
+        if store[path][5]:
+            store[path][6] = "lightcoral"  # Background color when selected
+            store[path][7] = "black"       # Text color when selected
+        else:
+            store[path][6] = "#202023"     # Default background color
+            store[path][7] = "white"       # Default text color
+        
         print(f"Toggle button state changed for row {path}: {store[path][5]}")
         # Get server info for this row
         server_key = store[path][1]
@@ -164,8 +189,8 @@ class ourwindow(Gtk.ApplicationWindow):
         elif selected_count == total_count:
             self.toggle_all_button.set_label("Unselect All")
         else:
-            self.toggle_all_button.set_label(f"Select All ({selected_count}/{total_count})")
-    
+            self.toggle_all_button.set_label(f"Unselect ({selected_count}/{total_count})")
+
     def print_selected_servers(self):
         """Print all currently selected servers"""
         if not self.store:
@@ -196,6 +221,25 @@ class ourwindow(Gtk.ApplicationWindow):
         else:
             print("No servers currently selected")
         print("=" * 40)
+        
+    def apply_rounded_corners_css(self, tree):
+        """Apply CSS for rounded corners to the TreeView"""
+        css_provider = Gtk.CssProvider()
+        css = """
+        treeview {
+            border-radius: 12px;
+            border: 2px solid #404040;
+            background: #202023;
+        }
+        
+        """
+        css_provider.load_from_data(css.encode('utf-8'))
+        
+        # Apply the CSS to the TreeView
+        tree.get_style_context().add_provider(
+            css_provider,
+            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+        )
         
     
     def getServerInfo(self, api='https://api.steampowered.com/ISteamApps/GetSDRConfig/v1/?appid=730'):

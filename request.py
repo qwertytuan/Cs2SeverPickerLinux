@@ -1,9 +1,10 @@
+#!/usr/bin/python3
 import requests
 import os
 import json
 import random
 
-def get_server_info(api='https://api.steampowered.com/ISteamApps/GetSDRConfig/v1/?appid=730'):
+def getServerInfo(api='https://api.steampowered.com/ISteamApps/GetSDRConfig/v1/?appid=730'):
     print("Fetching server list...")
     try:
         response = requests.get(api, timeout=20)
@@ -15,24 +16,37 @@ def get_server_info(api='https://api.steampowered.com/ISteamApps/GetSDRConfig/v1
         print(f"Error fetching server info: {e}")
         return None
 
-# Get servers infomation
-server_info = get_server_info()
+def serverData():
+    server_info = getServerInfo()
+    all_server = []
+    # Clean the infomation to servers datas
+    pops = server_info["pops"]
+    for pop_key,pop_data in pops.items():
+        all_ip = []
+        server=[]
+        pop_description = pop_data["desc"]
+        print(f"Server key: {pop_key}")
+        server.append(pop_key)
+        print(f"Server name: {pop_description}")
+        server.append(pop_description)
+        relays = pop_data.get("relays",[])
+        for relay in relays:
+            ipv4 = relay["ipv4"]
+            all_ip.append(ipv4)
+            print(f"Ip: {ipv4}")
+        if all_ip:
+            server.append(all_ip)
+            random_ip = random.choice(all_ip)
+            print(f"Random ip in list: {random_ip}")
+        else:
+            print("No IPs found for this server.")
+        if server:
+            print(server)
+        print("--------------------------------")
+        all_server.append(server)
+    if all_server:
+        return all_server
 
-# Clean the infomation to servers datas
-pops = server_info["pops"]
-for pop_key,pop_data in pops.items():
-    all_ip = []
-    pop_description = pop_data["desc"]
-    print(f"Server key: {pop_key}")
-    print(f"Server name: {pop_description}")
-    relays = pop_data.get("relays",[])
-    for relay in relays:
-        ipv4 = relay["ipv4"]
-        all_ip.append(ipv4)
-        print(f"Ip: {ipv4}")
-    if all_ip:
-        random_ip = random.choice(all_ip)
-        print(f"Random ip in list: {random_ip}")
-    else:
-        print("No IPs found for this server.")
-    print("--------------------------------")
+data= serverData()
+for item in data:
+          print(f"Server in array: {item}")

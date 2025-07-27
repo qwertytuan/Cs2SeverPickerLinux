@@ -5,9 +5,9 @@
 ## Core Features
 - [X] Get server list from the API
 function: get_server_info()
-- [ ] Get ip and port from the server list
-- [ ] Get server details
-- [ ] User interface for displaying server list
+- [X] Get ip and port from the server list
+- [X] Get server details
+- [X] User interface for displaying server list
 - [ ] Search functionality for server list
 - [ ] Button for refreshing, block all, unblock all
 - [ ] Button for block selected

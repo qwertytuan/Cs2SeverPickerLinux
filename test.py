@@ -5,30 +5,44 @@ from gi.repository import Gtk
 import os
 import subprocess
 import requests
+import random
+import re
 
 class ourwindow(Gtk.ApplicationWindow):
 
     def __init__(self, application):
-        super().__init__(application=application, title="Demonstration of PyObject GUI Application Creation")
-        self.set_default_size(1920, 1080)
-        self.get_server_info()
+        super().__init__(application=application, title="CS2 Server Picker Linux")
+        self.set_default_size(1200, 800)
+        self.getServerInfo()
 
         # Correct button creation for GTK 4
-        button1 = Gtk.Button.new_with_label("Execute")
-        button1.set_size_request(100, 50)
-        button1.set_halign(Gtk.Align.CENTER)
-        button1.set_valign(Gtk.Align.CENTER)
-        button1.set_css_classes(["button", "secondary"])
-        button1.set_tooltip_text("Click this button to execute a command with elevated privileges")
-        button1.connect("clicked", self.whenbutton1_clicked)
+        self.toggle_all_button = Gtk.Button.new_with_label("Select All")
+        self.toggle_all_button.set_size_request(120, 50)
+        self.toggle_all_button.set_halign(Gtk.Align.CENTER)
+        self.toggle_all_button.set_valign(Gtk.Align.CENTER)
+        self.toggle_all_button.set_css_classes(["button", "secondary"])
+        self.toggle_all_button.set_tooltip_text("Click to select/unselect all servers")
+        self.toggle_all_button.connect("clicked", self.on_toggle_all_clicked)
+        
+        # Store reference to the store for the toggle all functionality
+        self.store = None
         
         # create a table view with test data
-        # Create a ListStore with test data
-        store = Gtk.ListStore(int, str, str, bool)
-        store.append([1, "Server 1", "20ms", False])
-        store.append([2, "Server 2", "30ms", False])
-        store.append([3, "Server 3", "40ms", False])
-
+        # Create a ListStore with test data (all string columns except id and boolean)
+        store = Gtk.ListStore(int, str, str, str, str, bool)
+        self.store = store  # Store reference for toggle all functionality
+        server_data = self.serverData()
+        if server_data:
+            for i, server in enumerate(server_data):
+                if len(server) >= 4:
+                    key, name, ip_list, random_ip = server
+                    # Convert IP list to string for display
+                    ip_list_str = ', '.join(ip_list) if ip_list else "No IPs"
+                    store.append([i, key, name, ip_list_str, random_ip, False])
+        else:
+            print("No server data available to display.")
+            return
+    
         # Create a TreeView and set its model
         tree = Gtk.TreeView(model=store)
 
@@ -38,71 +52,154 @@ class ourwindow(Gtk.ApplicationWindow):
         column_id = Gtk.TreeViewColumn("Id", renderer_text, text=0)
         tree.append_column(column_id)
 
-        column_author = Gtk.TreeViewColumn("Server Name", renderer_text, text=1)
-        tree.append_column(column_author)
+        column_key = Gtk.TreeViewColumn("Server Key", renderer_text, text=1)
+        tree.append_column(column_key)
 
-        column_price = Gtk.TreeViewColumn("Ping", renderer_text, text=2)
-        tree.append_column(column_price)
+        column_name = Gtk.TreeViewColumn("Server Name", renderer_text, text=2)
+        tree.append_column(column_name)
+        
+        column_random_ip = Gtk.TreeViewColumn("Random IP", renderer_text, text=4)
+        tree.append_column(column_random_ip)
 
         # Add a button column to the TreeView
         # Use Gtk.CellRendererToggle for the toggle button column
         renderer_toggle = Gtk.CellRendererToggle()
         renderer_toggle.connect("toggled", self.on_toggle_toggled, store)
 
-        column_toggle = Gtk.TreeViewColumn("Action", renderer_toggle, active=3)
+        column_toggle = Gtk.TreeViewColumn("Action", renderer_toggle, active=5)
         tree.append_column(column_toggle)
 
-        # Add the TreeView to the box
-  
+        # Create a ScrolledWindow for the TreeView to make it scrollable
+        scrolled_window = Gtk.ScrolledWindow()
+        scrolled_window.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+        scrolled_window.set_child(tree)
+        
+        # Set size constraints for the scrolled window
+        # 80% width of window and 50% height of window
+        scrolled_window.set_size_request(int(1200 * 0.8), int(800 * 0.5))
+        scrolled_window.set_halign(Gtk.Align.CENTER)
+        scrolled_window.set_valign(Gtk.Align.START)
 
         # Create a vertical box container
         vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
         vbox.set_vexpand(True)
         vbox.set_hexpand(True)
+        vbox.set_margin_top(20)
+        vbox.set_margin_bottom(20)
+        vbox.set_margin_start(20)
+        vbox.set_margin_end(20)
 
-
-        # Add the TreeView to the box after the button
-        vbox.append(tree)
-        vbox.append(button1)
-
-        # Center the TreeView
-        tree.set_size_request(800, 600)
-        tree.set_halign(Gtk.Align.CENTER)
-        tree.set_valign(Gtk.Align.CENTER)
+        # Add the ScrolledWindow (containing TreeView) to the box
+        vbox.append(scrolled_window)
+        vbox.append(self.toggle_all_button)
 
         # Center the button
-        button1.set_halign(Gtk.Align.CENTER)
-        button1.set_valign(Gtk.Align.CENTER)
+        self.toggle_all_button.set_halign(Gtk.Align.CENTER)
+        self.toggle_all_button.set_valign(Gtk.Align.CENTER)
 
         # Set the box as the child of the window
         self.set_child(vbox)
 
-    def whenbutton1_clicked(self, button):
-        try:
-            command = ["pkexec", "echo", "Hello, World!"]
-            output = subprocess.check_output(
-                command,
-                text=True,
-                stderr=subprocess.STDOUT,
-                env=os.environ.copy()
-            )
-            print(f"Command output: {output}")
-        except subprocess.CalledProcessError as e:
-            print(f"Command failed with exit code {e.returncode}: {e.output}")
-        except FileNotFoundError:
-            print("pkexec not found. Please ensure it is installed.")
-        except Exception as e:
-            print(f"An unexpected error occurred: {e}")
-        finally:
-            print("Success")
+    def on_toggle_all_clicked(self, button):
+        """Toggle all servers between selected and unselected state"""
+        if not self.store:
+            return
+            
+        # Check if any items are currently selected
+        has_selected = False
+        for row in self.store:
+            if row[5]:  # Check the boolean column (index 5)
+                has_selected = True
+                break
+        
+        # If any are selected, unselect all. If none are selected, select all
+        new_state = not has_selected
+        
+        for row in self.store:
+            row[5] = new_state
+        
+        # Update button text based on current state
+        if new_state:
+            self.toggle_all_button.set_label("Unselect All")
+            print("All servers selected")
+        else:
+            self.toggle_all_button.set_label("Select All")
+            print("All servers unselected")
+        
+        # Print all selected rows
+        self.print_selected_servers()
+
 
     def on_toggle_toggled(self, widget, path, store):
         # Toggle the state of the button for the selected row
-        store[path][3] = not store[path][3]
-        print(f"Toggle button state changed for row {path}: {store[path][3]}")
+        store[path][5] = not store[path][5]
+        print(f"Toggle button state changed for row {path}: {store[path][5]}")
+        # Get server info for this row
+        server_key = store[path][1]
+        server_name = store[path][2]
+        random_ip = store[path][4]
+        print(f"Selected server: {server_name} ({server_key}) - IP: {random_ip}")
+        
+        # Update the toggle all button text based on current selection state
+        self.update_toggle_all_button_text()
+        
+        # Print all selected rows when individual toggle changes
+        self.print_selected_servers()
+        
     
-    def get_server_info(self, api='https://api.steampowered.com/ISteamApps/GetSDRConfig/v1/?appid=730'):
-        print("Get server list")
+    def update_toggle_all_button_text(self):
+        """Update the toggle all button text based on current selection state"""
+        if not self.store:
+            return
+            
+        selected_count = 0
+        total_count = len(self.store)
+        
+        for row in self.store:
+            if row[5]:  # Check the boolean column (index 5)
+                selected_count += 1
+        
+        if selected_count == 0:
+            self.toggle_all_button.set_label("Select All")
+        elif selected_count == total_count:
+            self.toggle_all_button.set_label("Unselect All")
+        else:
+            self.toggle_all_button.set_label(f"Select All ({selected_count}/{total_count})")
+    
+    def print_selected_servers(self):
+        """Print all currently selected servers"""
+        if not self.store:
+            return
+        
+        selected_servers = []
+        for row in self.store:
+            if row[5]:  # Check if selected (boolean column index 5)
+                server_info = {
+                    'id': row[0],
+                    'key': row[1],
+                    'name': row[2],
+                    'ip_addresses': row[3],
+                    'random_ip': row[4],
+                    'selected': row[5]
+                }
+                selected_servers.append(server_info)
+        
+        print(f"\n=== SELECTED SERVERS ({len(selected_servers)}) ===")
+        if selected_servers:
+            for server in selected_servers:
+                print(f"ID: {server['id']}")
+                print(f"  Key: {server['key']}")
+                print(f"  Name: {server['name']}")
+                print(f"  Random IP: {server['random_ip']}")
+                print(f"  All IPs: {server['ip_addresses']}")
+                print("  ---")
+        else:
+            print("No servers currently selected")
+        print("=" * 40)
+        
+    
+    def getServerInfo(self, api='https://api.steampowered.com/ISteamApps/GetSDRConfig/v1/?appid=730'):
+        print("Fetching server list...")
         try:
             response = requests.get(api, timeout=20)
             response.raise_for_status()  # Raise an exception for bad status codes
@@ -112,6 +209,63 @@ class ourwindow(Gtk.ApplicationWindow):
         except requests.exceptions.RequestException as e:
             print(f"Error fetching server info: {e}")
             return None
+
+    def serverData(self):
+        server_info = self.getServerInfo()
+        all_server = []
+        # Clean the information to servers datas
+        pops = server_info["pops"]
+        for pop_key, pop_data in pops.items():
+            all_ip = []
+            server = []
+            pop_description = pop_data["desc"]
+            server.append(pop_key)
+            server.append(pop_description)
+            relays = pop_data.get("relays", [])
+            for relay in relays:
+                ipv4 = relay["ipv4"]
+                all_ip.append(ipv4)
+            if all_ip:
+                server.append(all_ip)
+                random_ip = random.choice(all_ip)
+                server.append(random_ip)
+                all_server.append(server)  # Only add servers that have IPs
+        if all_server:
+            return all_server
+
+    def getPing(self, ip):
+        print(f"Pinging {ip}...")
+        try:
+            # Use ping command with 3 packets and 5 second timeout
+            result = subprocess.run(
+                ['ping', '-c', '3', '-W', '5', ip],
+                capture_output=True,
+                text=True,
+                timeout=10,
+                check=False
+            )
+            if result.returncode == 0:
+                # Parse the output to extract average ping time
+                output = result.stdout
+                # Look for the line with statistics (avg/min/max/mdev)
+                avg_line = re.search(r'rtt min/avg/max/mdev = ([\d.]+)/([\d.]+)/([\d.]+)/([\d.]+) ms', output)
+                if avg_line:
+                    avg_ping = float(avg_line.group(2))
+                    print(f"Ping to {ip}: {avg_ping:.2f} ms")
+                    return avg_ping
+                else:
+                    print(f"Could not parse ping result for {ip}")
+                    return None
+            else:
+                print(f"Ping failed for {ip}: {result.stderr.strip()}")
+                return None
+        except subprocess.TimeoutExpired:
+            print(f"Ping timeout for {ip}")
+            return None
+        except (subprocess.CalledProcessError, OSError) as e:
+            print(f"Error pinging {ip}: {e}")
+            return None
+    
 
 class MyApp(Gtk.Application):
 

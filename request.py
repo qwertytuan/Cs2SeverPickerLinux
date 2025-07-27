@@ -25,24 +25,24 @@ def serverData():
         all_ip = []
         server=[]
         pop_description = pop_data["desc"]
-        print(f"Server key: {pop_key}")
+        #print(f"Server key: {pop_key}")
         server.append(pop_key)
-        print(f"Server name: {pop_description}")
+        #print(f"Server name: {pop_description}")
         server.append(pop_description)
         relays = pop_data.get("relays",[])
         for relay in relays:
             ipv4 = relay["ipv4"]
             all_ip.append(ipv4)
-            print(f"Ip: {ipv4}")
+            #print(f"Ip: {ipv4}")
         if all_ip:
             server.append(all_ip)
             random_ip = random.choice(all_ip)
-            print(f"Random ip in list: {random_ip}")
-        else:
-            print("No IPs found for this server.")
-        if server:
-            print(server)
-        print("--------------------------------")
+            #print(f"Random ip in list: {random_ip}")
+        #else:
+            #print("No IPs found for this server.")
+        #if server:
+            #print(server)
+        #print("--------------------------------")
         all_server.append(server)
     if all_server:
         return all_server
@@ -50,3 +50,4 @@ def serverData():
 data= serverData()
 for item in data:
           print(f"Server in array: {item}")
+print(len(data))

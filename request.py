@@ -92,4 +92,4 @@ print(f"Total servers found: {len(data)}")
 for i, server in enumerate(data):  
     if len(server) >= 4:  # Ensure server has all elements [key, name, ip_list, random_ip]
         key, name, ip_list, random_ip = server
-        print(f"Server Key: {key}, Name: {name}, IPs: {ip_list}, Random IP: {random_ip}")
+        print(f"Index: {i} ,Server Key: {key}, Name: {name}, IPs: {ip_list}, Random IP: {random_ip}")

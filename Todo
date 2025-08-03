@@ -11,7 +11,7 @@ function: get_server_info()
 - [ ] Search functionality for server list
 - [ ] Button for refreshing, block all, unblock all
 - [ ] Button for block selected
-- [ ] Use iptable to temporarily block servers 
+- [X] Use iptable to temporarily block servers 
 
 ## Optional Features
 - [ ] Import and export config

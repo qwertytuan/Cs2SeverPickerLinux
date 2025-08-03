@@ -7,6 +7,7 @@ import subprocess
 import requests
 import random
 import re
+import iptables_manager as iptbl
 
 class ourwindow(Gtk.ApplicationWindow):
 

@@ -1,18 +1,12 @@
 #!/usr/bin/python3
 import gi
 gi.require_version('Gtk', '4.0')
-<<<<<<< Updated upstream
 from gi.repository import Gtk, Gdk
-=======
-from gi.repository import Gtk, GLib
->>>>>>> Stashed changes
 import os
 import subprocess
 import requests
 import random
 import re
-import asyncio
-import threading
 
 class ourwindow(Gtk.ApplicationWindow):
 
@@ -35,12 +29,8 @@ class ourwindow(Gtk.ApplicationWindow):
         
         # create a table view with test data
         # Create a ListStore with test data (all string columns except id and boolean)
-<<<<<<< Updated upstream
         # Added a color column for row highlighting and text color
         store = Gtk.ListStore(int, str, str, str, str, bool, str, str)
-=======
-        store = Gtk.ListStore(int, str, str, str, str, str, bool)
->>>>>>> Stashed changes
         self.store = store  # Store reference for toggle all functionality
         server_data = self.serverData()
         if server_data:
@@ -49,12 +39,8 @@ class ourwindow(Gtk.ApplicationWindow):
                     key, name, ip_list, random_ip = server
                     # Convert IP list to string for display
                     ip_list_str = ', '.join(ip_list) if ip_list else "No IPs"
-<<<<<<< Updated upstream
                     # Add row with default dark background and white text
                     store.append([i, key, name, ip_list_str, random_ip, False, "#202023", "white"])
-=======
-                    store.append([i, key, name, ip_list_str, random_ip, "N/A", False])
->>>>>>> Stashed changes
         else:
             print("No server data available to display.")
             return
@@ -84,20 +70,13 @@ class ourwindow(Gtk.ApplicationWindow):
         column_random_ip = Gtk.TreeViewColumn("Random IP", renderer_text, text=4, background=6, foreground=7)
         tree.append_column(column_random_ip)
 
-        column_ping = Gtk.TreeViewColumn("Ping (ms)", renderer_text, text=5)
-        tree.append_column(column_ping)
-
         # Add a button column to the TreeView
         # Use Gtk.CellRendererToggle for the toggle button column
         renderer_toggle = Gtk.CellRendererToggle()
         renderer_toggle.connect("toggled", self.on_toggle_toggled, store)
 
-<<<<<<< Updated upstream
         column_toggle = Gtk.TreeViewColumn("Action", renderer_toggle, active=5)
         column_toggle.add_attribute(renderer_toggle, "cell-background", 6)
-=======
-        column_toggle = Gtk.TreeViewColumn("Action", renderer_toggle, active=6)
->>>>>>> Stashed changes
         tree.append_column(column_toggle)
 
         # Create a ScrolledWindow for the TreeView to make it scrollable
@@ -124,16 +103,9 @@ class ourwindow(Gtk.ApplicationWindow):
         vbox.append(scrolled_window)
         vbox.append(self.toggle_all_button)
 
-        # Add Ping All button
-        self.ping_all_button = Gtk.Button.new_with_label("Ping All Servers")
-        self.ping_all_button.connect("clicked", self.on_ping_all_clicked)
-        vbox.append(self.ping_all_button)
-
         # Center the button
         self.toggle_all_button.set_halign(Gtk.Align.CENTER)
         self.toggle_all_button.set_valign(Gtk.Align.CENTER)
-        self.ping_all_button.set_halign(Gtk.Align.CENTER)
-        self.ping_all_button.set_valign(Gtk.Align.CENTER)
 
         # Set the box as the child of the window
         self.set_child(vbox)
@@ -146,7 +118,7 @@ class ourwindow(Gtk.ApplicationWindow):
         # Check if any items are currently selected
         has_selected = False
         for row in self.store:
-            if row[6]:  # Check the boolean column (index 6)
+            if row[5]:  # Check the boolean column (index 5)
                 has_selected = True
                 break
         
@@ -154,7 +126,6 @@ class ourwindow(Gtk.ApplicationWindow):
         new_state = not has_selected
         
         for row in self.store:
-<<<<<<< Updated upstream
             row[5] = new_state
             # Update row color based on selection state
             if new_state:
@@ -163,9 +134,6 @@ class ourwindow(Gtk.ApplicationWindow):
             else:
                 row[6] = "#202023"     # Default background color
                 row[7] = "white"       # Default text color
-=======
-            row[6] = new_state
->>>>>>> Stashed changes
         
         # Update button text based on current state
         if new_state:
@@ -181,7 +149,6 @@ class ourwindow(Gtk.ApplicationWindow):
 
     def on_toggle_toggled(self, widget, path, store):
         # Toggle the state of the button for the selected row
-<<<<<<< Updated upstream
         store[path][5] = not store[path][5]
         # Update row color based on selection state
         if store[path][5]:
@@ -192,10 +159,6 @@ class ourwindow(Gtk.ApplicationWindow):
             store[path][7] = "white"       # Default text color
         
         print(f"Toggle button state changed for row {path}: {store[path][5]}")
-=======
-        store[path][6] = not store[path][6]
-        print(f"Toggle button state changed for row {path}: {store[path][6]}")
->>>>>>> Stashed changes
         # Get server info for this row
         server_key = store[path][1]
         server_name = store[path][2]
@@ -218,7 +181,7 @@ class ourwindow(Gtk.ApplicationWindow):
         total_count = len(self.store)
         
         for row in self.store:
-            if row[6]:  # Check the boolean column (index 6)
+            if row[5]:  # Check the boolean column (index 5)
                 selected_count += 1
         
         if selected_count == 0:
@@ -235,15 +198,14 @@ class ourwindow(Gtk.ApplicationWindow):
         
         selected_servers = []
         for row in self.store:
-            if row[6]:  # Check if selected (boolean column index 6)
+            if row[5]:  # Check if selected (boolean column index 5)
                 server_info = {
                     'id': row[0],
                     'key': row[1],
                     'name': row[2],
                     'ip_addresses': row[3],
                     'random_ip': row[4],
-                    'ping': row[5],
-                    'selected': row[6]
+                    'selected': row[5]
                 }
                 selected_servers.append(server_info)
         
@@ -254,7 +216,6 @@ class ourwindow(Gtk.ApplicationWindow):
                 print(f"  Key: {server['key']}")
                 print(f"  Name: {server['name']}")
                 print(f"  Random IP: {server['random_ip']}")
-                print(f"  Ping: {server['ping']}")
                 print(f"  All IPs: {server['ip_addresses']}")
                 print("  ---")
         else:
@@ -297,20 +258,17 @@ class ourwindow(Gtk.ApplicationWindow):
         server_info = self.getServerInfo()
         all_server = []
         # Clean the information to servers datas
-        if not server_info or "pops" not in server_info:
-            return None
         pops = server_info["pops"]
         for pop_key, pop_data in pops.items():
             all_ip = []
             server = []
-            pop_description = pop_data.get("desc", "N/A")
+            pop_description = pop_data["desc"]
             server.append(pop_key)
             server.append(pop_description)
             relays = pop_data.get("relays", [])
             for relay in relays:
-                ipv4 = relay.get("ipv4")
-                if ipv4:
-                    all_ip.append(ipv4)
+                ipv4 = relay["ipv4"]
+                all_ip.append(ipv4)
             if all_ip:
                 server.append(all_ip)
                 random_ip = random.choice(all_ip)
@@ -319,72 +277,38 @@ class ourwindow(Gtk.ApplicationWindow):
         if all_server:
             return all_server
 
-    # --- Start of new/modified methods for async ping ---
-
-    def on_ping_all_clicked(self, button):
-        """Handler for the 'Ping All Servers' button."""
-        ips = [row[4] for row in self.store]
-        
-        def run_async_pings_in_thread():
-            """Runs the asyncio event loop in a separate thread."""
-            async def get_pings(ips):
-                """Gathers all async ping tasks."""
-                tasks = [self.get_ping_async(ip) for ip in ips]
-                return await asyncio.gather(*tasks)
-
-            # Run the async function and get results
-            results = asyncio.run(get_pings(ips))
-            
-            # Schedule UI update on the main GTK thread
-            GLib.idle_add(self.update_ping_results, results)
-
-        # Create and start the thread
-        ping_thread = threading.Thread(target=run_async_pings_in_thread)
-        ping_thread.daemon = True  # Allows main program to exit even if thread is running
-        ping_thread.start()
-
-    def update_ping_results(self, results):
-        """Updates the ListStore with ping results on the main thread."""
-        ip_to_ping = {ip: ping for ip, ping in results}
-        for row in self.store:
-            ip = row[4]
-            ping = ip_to_ping.get(ip)
-            if ping is not None:
-                row[5] = f"{ping:.2f}"
-            else:
-                row[5] = "Failed"
-        print("Ping results updated in the UI.")
-
-    async def get_ping_async(self, ip):
-        """Asynchronously pings a single IP address and returns the average ping time."""
+    def getPing(self, ip):
         print(f"Pinging {ip}...")
         try:
-            proc = await asyncio.create_subprocess_exec(
-                'ping', '-c', '3', '-W', '5', ip,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE
+            # Use ping command with 3 packets and 5 second timeout
+            result = subprocess.run(
+                ['ping', '-c', '3', '-W', '5', ip],
+                capture_output=True,
+                text=True,
+                timeout=10,
+                check=False
             )
-            stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=10)
-
-            if proc.returncode == 0:
-                output = stdout.decode()
+            if result.returncode == 0:
+                # Parse the output to extract average ping time
+                output = result.stdout
+                # Look for the line with statistics (avg/min/max/mdev)
                 avg_line = re.search(r'rtt min/avg/max/mdev = ([\d.]+)/([\d.]+)/([\d.]+)/([\d.]+) ms', output)
                 if avg_line:
                     avg_ping = float(avg_line.group(2))
                     print(f"Ping to {ip}: {avg_ping:.2f} ms")
-                    return ip, avg_ping
+                    return avg_ping
                 else:
                     print(f"Could not parse ping result for {ip}")
-                    return ip, None
+                    return None
             else:
-                print(f"Ping failed for {ip}: {stderr.decode().strip()}")
-                return ip, None
-        except asyncio.TimeoutError:
+                print(f"Ping failed for {ip}: {result.stderr.strip()}")
+                return None
+        except subprocess.TimeoutExpired:
             print(f"Ping timeout for {ip}")
-            return ip, None
+            return None
         except (subprocess.CalledProcessError, OSError) as e:
             print(f"Error pinging {ip}: {e}")
-            return ip, None
+            return None
     
 
 class MyApp(Gtk.Application):

@@ -1,7 +1,5 @@
 import subprocess
 
-
-# IPtables logic for firewalls
 def block_ips_for_servers(server_list):
     """
     Blocks all unique IP addresses from a list of server info lists

@@ -98,11 +98,11 @@ class ServerPickerWindow(Gtk.ApplicationWindow):
         # Create a vertical box container
         vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
         vbox.set_vexpand(True)
-        vbox.set_hexpand(True)
-        vbox.set_margin_top(20)
-        vbox.set_margin_bottom(20)
-        vbox.set_margin_start(20)
-        vbox.set_margin_end(20)
+vbox.set_hexpand(True)
+vbox.set_margin_top(20)
+vbox.set_margin_bottom(20)
+vbox.set_margin_start(20)
+vbox.set_margin_end(20)
 
         # Add the ScrolledWindow (containing TreeView) to the box
         vbox.append(scrolled_window)
@@ -238,7 +238,7 @@ class ServerPickerWindow(Gtk.ApplicationWindow):
         """Apply CSS for rounded corners to the TreeView"""
         css_provider = Gtk.CssProvider()
         css = """
-        treeview {
+treeview {
             border-radius: 12px;
             border: 2px solid #404040;
             background: #202023;
@@ -293,15 +293,15 @@ class ServerPickerWindow(Gtk.ApplicationWindow):
             print(f"Unblocked {len(selected_servers_to_unblock)} servers")
 
     
-class MyApp(Gtk.Application):
+class Cs2ServerPickerApp(Gtk.Application):
 
     def __init__(self):
-        super().__init__(application_id="com.example.myapp")
+        super().__init__(application_id="com.example.cs2serverpicker")
 
     def do_activate(self):
         win = ServerPickerWindow(self)
         win.present()
 
 
-app = MyApp()
+app = Cs2ServerPickerApp()
 app.run()

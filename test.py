@@ -11,7 +11,7 @@ class ServerPickerWindow(Gtk.ApplicationWindow):
         super().__init__(application=application, title="CS2 Server Picker Linux")
         self.set_default_size(1200, 800)
 
-        # Correct button creation for GTK 4
+        # Button to select/deselect all servers
         self.toggle_all_button = Gtk.Button.new_with_label("Select All")
         self.toggle_all_button.set_size_request(120, 50)
         self.toggle_all_button.set_halign(Gtk.Align.CENTER)
@@ -19,6 +19,15 @@ class ServerPickerWindow(Gtk.ApplicationWindow):
         self.toggle_all_button.set_css_classes(["button", "secondary"])
         self.toggle_all_button.set_tooltip_text("Click to select/unselect all servers")
         self.toggle_all_button.connect("clicked", self.on_toggle_all_clicked)
+        
+        # Button to block selected IPs
+        self.block_selected_button = Gtk.Button.new_with_label("Block Selected IPs")
+        self.block_selected_button.set_size_request(120, 50)
+        self.block_selected_button.set_halign(Gtk.Align.CENTER)
+        self.block_selected_button.set_valign(Gtk.Align.CENTER)
+        self.block_selected_button.set_css_classes(["button", "secondary"])
+        self.block_selected_button.set_tooltip_text("Click to block selected server IPs")
+        self.block_selected_button.connect("clicked", self.on_block_selected_clicked)
         
         # Store reference to the store for the toggle all functionality
         self.store = None
@@ -98,14 +107,19 @@ class ServerPickerWindow(Gtk.ApplicationWindow):
         # Add the ScrolledWindow (containing TreeView) to the box
         vbox.append(scrolled_window)
         vbox.append(self.toggle_all_button)
+        vbox.append(self.block_selected_button)
 
         # Center the button
         self.toggle_all_button.set_halign(Gtk.Align.CENTER)
         self.toggle_all_button.set_valign(Gtk.Align.CENTER)
 
+        self.block_selected_button.set_halign(Gtk.Align.CENTER)
+        self.block_selected_button.set_valign(Gtk.Align.CENTER)
+
         # Set the box as the child of the window
         self.set_child(vbox)
 
+    # Toggle all servers between selected and unselected state
     def on_toggle_all_clicked(self, button):
         """Toggle all servers between selected and unselected state"""
         if not self.store:
@@ -142,7 +156,7 @@ class ServerPickerWindow(Gtk.ApplicationWindow):
         # Print all selected rows
         self.print_selected_servers()
 
-
+    # Toggle button handler for individual rows
     def on_toggle_toggled(self, widget, path, store):
         # Toggle the state of the button for the selected row
         store[path][5] = not store[path][5]
@@ -166,8 +180,8 @@ class ServerPickerWindow(Gtk.ApplicationWindow):
         
         # Print all selected rows when individual toggle changes
         self.print_selected_servers()
-        
-    
+
+    # Update the toggle all button text based on current selection state
     def update_toggle_all_button_text(self):
         """Update the toggle all button text based on current selection state"""
         if not self.store:
@@ -186,7 +200,8 @@ class ServerPickerWindow(Gtk.ApplicationWindow):
             self.toggle_all_button.set_label("Unselect All")
         else:
             self.toggle_all_button.set_label(f"Unselect ({selected_count}/{total_count})")
-
+    
+    # Print all currently selected servers
     def print_selected_servers(self):
         """Print all currently selected servers"""
         if not self.store:
@@ -217,7 +232,8 @@ class ServerPickerWindow(Gtk.ApplicationWindow):
         else:
             print("No servers currently selected")
         print("=" * 40)
-        
+     
+    # Add CSS for rounded corners to the TreeView   
     def apply_rounded_corners_css(self, tree):
         """Apply CSS for rounded corners to the TreeView"""
         css_provider = Gtk.CssProvider()
@@ -236,6 +252,46 @@ class ServerPickerWindow(Gtk.ApplicationWindow):
             css_provider,
             Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
         )
+    
+    # Block selected IPs using iptables
+    def on_block_selected_clicked(self, button):
+        """Block all selected server IPs using iptables"""
+        if not self.store:
+            print("No server data available to block.")
+            return
+        
+        selected_servers_to_block = []
+        selected_servers_to_unblock = []
+        for row in self.store:
+            if row[5]:  # Selected servers
+                # Convert IP addresses string back to list for iptables manager
+                ip_addresses = row[3].split(', ') if row[3] != "No IPs" else []
+                server_data = [row[1], row[2], ip_addresses, row[4]]  # [key, name, ip_list, random_ip]
+                selected_servers_to_block.append(server_data)
+                print(f"Blocking server: {row[2]} ({row[1]}) - IP: {row[4]}")
+            else:  # Unselected servers
+                # Convert IP addresses string back to list for iptables manager
+                ip_addresses = row[3].split(', ') if row[3] != "No IPs" else []
+                server_data = [row[1], row[2], ip_addresses, row[4]]  # [key, name, ip_list, random_ip]
+                selected_servers_to_unblock.append(server_data)
+                print(f"Unblocking server: {row[2]} ({row[1]}) - IP: {row[4]}")
+
+        if not selected_servers_to_block:
+            print("No servers selected to block.")
+
+        if not selected_servers_to_unblock:
+            print("No servers selected to unblock.")
+        
+        # Block the selected servers using iptables
+        if selected_servers_to_block:
+            iptbl.block_ips_for_servers(selected_servers_to_block)
+            print(f"Blocked {len(selected_servers_to_block)} servers")
+                                            
+        # Unblock the unselected servers using iptables
+        if selected_servers_to_unblock:
+            iptbl.unblock_ips_for_servers(selected_servers_to_unblock)
+            print(f"Unblocked {len(selected_servers_to_unblock)} servers")
+
     
 class MyApp(Gtk.Application):
 

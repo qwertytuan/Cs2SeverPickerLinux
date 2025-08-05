@@ -9,8 +9,9 @@ function: get_server_info()
 - [X] Get server details
 - [X] User interface for displaying server list
 - [ ] Search functionality for server list
-- [ ] Button for refreshing, block all, unblock all
-- [ ] Button for block selected
+- [ ] Button for refreshing, 
+- [X] Button to lock all, unblock all
+- [X] Button for block selected
 - [X] Use iptable to temporarily block servers 
 
 ## Optional Features

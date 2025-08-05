@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 import subprocess
 
 def block_ips_for_servers(server_list):

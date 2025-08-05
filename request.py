@@ -6,7 +6,7 @@ import subprocess
 import random
 import re
 
-def getServerInfo(api='https://api.steampowered.com/ISteamApps/GetSDRConfig/v1/?appid=730'):
+def get_server_info(api='https://api.steampowered.com/ISteamApps/GetSDRConfig/v1/?appid=730'):
     print("Fetching server list...")
     try:
         response = requests.get(api, timeout=20)
@@ -18,23 +18,27 @@ def getServerInfo(api='https://api.steampowered.com/ISteamApps/GetSDRConfig/v1/?
         print(f"Error fetching server info: {e}")
         return None
 
-def serverData():
-    server_info = getServerInfo()
+def get_server_data():
+    server_info = get_server_info()
+    if not server_info:
+        return []
+        
     all_server = []
     # Clean the infomation to servers datas
-    pops = server_info["pops"]
+    pops = server_info.get("pops", {})
     for pop_key,pop_data in pops.items():
         all_ip = []
         server=[]
-        pop_description = pop_data["desc"]
+        pop_description = pop_data.get("desc", "N/A")
         #print(f"Server key: {pop_key}")
         server.append(pop_key)
         #print(f"Server name: {pop_description}")
         server.append(pop_description)
         relays = pop_data.get("relays",[])
         for relay in relays:
-            ipv4 = relay["ipv4"]
-            all_ip.append(ipv4)
+            ipv4 = relay.get("ipv4")
+            if ipv4:
+                all_ip.append(ipv4)
             #print(f"Ip: {ipv4}")
         if all_ip:
             server.append(all_ip)
@@ -46,10 +50,9 @@ def serverData():
         #if server:
             #print(server)
         #print("--------------------------------")
-    if all_server:
-        return all_server
+    return all_server
 
-def getPing(ip):
+def get_ping(ip):
     print(f"Pinging {ip}...")
     try:
         # Use ping command with 3 packets and 5 second timeout
@@ -83,13 +86,15 @@ def getPing(ip):
     except (subprocess.CalledProcessError, OSError) as e:
         print(f"Error pinging {ip}: {e}")
         return None
-    
-    
-    
-data = serverData()
-# Test pinging a few servers with their random IPs
-print(f"Total servers found: {len(data)}")
-for i, server in enumerate(data):  
-    if len(server) >= 4:  # Ensure server has all elements [key, name, ip_list, random_ip]
-        key, name, ip_list, random_ip = server
-        print(f"Index: {i} ,Server Key: {key}, Name: {name}, IPs: {ip_list}, Random IP: {random_ip}")
+
+if __name__ == '__main__':
+    data = get_server_data()
+    if data:
+        # Test pinging a few servers with their random IPs
+        print(f"Total servers found: {len(data)}")
+        for i, server in enumerate(data):  
+            if len(server) >= 4:  # Ensure server has all elements [key, name, ip_list, random_ip]
+                key, name, ip_list, random_ip = server
+                print(f"Index: {i} ,Server Key: {key}, Name: {name}, IPs: {ip_list}, Random IP: {random_ip}")
+    else:
+        print("No server data found.")

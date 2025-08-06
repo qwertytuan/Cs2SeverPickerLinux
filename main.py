@@ -1,9 +1,23 @@
 #!/usr/bin/python3
 import gi
 gi.require_version('Gtk', '4.0')
-from gi.repository import Gtk, Gdk
+from gi.repository import Gtk, Gdk, Gio, GObject
 import iptables_manager as iptbl
 import request
+
+class ServerData(GObject.Object):
+    """GObject to hold server data for the list store"""
+    
+    def __init__(self, id, key, name, ip_list_str, random_ip, selected=False):
+        super().__init__()
+        self.id = id
+        self.key = key
+        self.name = name
+        self.ip_list_str = ip_list_str
+        self.random_ip = random_ip
+        self.selected = selected
+        self.background_color = "#202023"
+        self.text_color = "white"
 
 class ServerPickerWindow(Gtk.ApplicationWindow):
 
@@ -32,11 +46,10 @@ class ServerPickerWindow(Gtk.ApplicationWindow):
         # Store reference to the store for the toggle all functionality
         self.store = None
         
-        # create a table view with test data
-        # Create a ListStore with test data (all string columns except id and boolean)
-        # Added a color column for row highlighting and text color
-        store = Gtk.ListStore.new([int, str, str, str, str, bool, str, str])
-        self.store = store  # Store reference for toggle all functionality
+        # Create a Gio.ListStore for server data
+        self.store = Gio.ListStore.new(ServerData)
+        
+        # Get server data and populate the store
         server_data = request.get_server_data()
         if server_data:
             for i, server in enumerate(server_data):
@@ -44,50 +57,63 @@ class ServerPickerWindow(Gtk.ApplicationWindow):
                     key, name, ip_list, random_ip = server
                     # Convert IP list to string for display
                     ip_list_str = ', '.join(ip_list) if ip_list else "No IPs"
-                    # Add row with default dark background and white text
-                    store.append([i, key, name, ip_list_str, random_ip, False, "#202023", "white"])
+                    # Create ServerData object and append to store
+                    server_obj = ServerData(i, key, name, ip_list_str, random_ip, False)
+                    self.store.append(server_obj)
         else:
             print("No server data available to display.")
             return
-    
-        # Create a TreeView and set its model
-        tree = Gtk.TreeView(model=store)
+
+        # Create selection model
+        self.selection_model = Gtk.NoSelection.new(self.store)
         
-        # Make column separations more visible
-        tree.set_grid_lines(Gtk.TreeViewGridLines.VERTICAL)
-        tree.set_enable_tree_lines(True)
+        # Create ColumnView
+        column_view = Gtk.ColumnView.new(self.selection_model)
         
-        # Add rounded corners using CSS
-        self.apply_rounded_corners_css(tree)
-
-        # Add columns to the TreeView
-        renderer_text = Gtk.CellRendererText()
-
-        column_id = Gtk.TreeViewColumn("Id", renderer_text, text=0, background=6, foreground=7)
-        tree.append_column(column_id)
-
-        column_key = Gtk.TreeViewColumn("Server Key", renderer_text, text=1, background=6, foreground=7)
-        tree.append_column(column_key)
-
-        column_name = Gtk.TreeViewColumn("Server Name", renderer_text, text=2, background=6, foreground=7)
-        tree.append_column(column_name)
+        # Apply CSS styling
+        self.apply_rounded_corners_css(column_view)
         
-        column_random_ip = Gtk.TreeViewColumn("Random IP", renderer_text, text=4, background=6, foreground=7)
-        tree.append_column(column_random_ip)
+        # Add columns to the ColumnView
+        
+        # ID Column
+        id_factory = Gtk.SignalListItemFactory()
+        id_factory.connect("setup", self.setup_id_column)
+        id_factory.connect("bind", self.bind_id_column)
+        id_column = Gtk.ColumnViewColumn.new("ID", id_factory)
+        column_view.append_column(id_column)
+        
+        # Server Key Column
+        key_factory = Gtk.SignalListItemFactory()
+        key_factory.connect("setup", self.setup_key_column)
+        key_factory.connect("bind", self.bind_key_column)
+        key_column = Gtk.ColumnViewColumn.new("Server Key", key_factory)
+        column_view.append_column(key_column)
+        
+        # Server Name Column
+        name_factory = Gtk.SignalListItemFactory()
+        name_factory.connect("setup", self.setup_name_column)
+        name_factory.connect("bind", self.bind_name_column)
+        name_column = Gtk.ColumnViewColumn.new("Server Name", name_factory)
+        column_view.append_column(name_column)
+        
+        # Random IP Column
+        ip_factory = Gtk.SignalListItemFactory()
+        ip_factory.connect("setup", self.setup_ip_column)
+        ip_factory.connect("bind", self.bind_ip_column)
+        ip_column = Gtk.ColumnViewColumn.new("Random IP", ip_factory)
+        column_view.append_column(ip_column)
+        
+        # Toggle Column
+        toggle_factory = Gtk.SignalListItemFactory()
+        toggle_factory.connect("setup", self.setup_toggle_column)
+        toggle_factory.connect("bind", self.bind_toggle_column)
+        toggle_column = Gtk.ColumnViewColumn.new("Action", toggle_factory)
+        column_view.append_column(toggle_column)
 
-        # Add a button column to the TreeView
-        # Use Gtk.CellRendererToggle for the toggle button column
-        renderer_toggle = Gtk.CellRendererToggle()
-        renderer_toggle.connect("toggled", self.on_toggle_toggled, store)
-
-        column_toggle = Gtk.TreeViewColumn("Action", renderer_toggle, active=5)
-        column_toggle.add_attribute(renderer_toggle, "cell-background", 6)
-        tree.append_column(column_toggle)
-
-        # Create a ScrolledWindow for the TreeView to make it scrollable
+        # Create a ScrolledWindow for the ColumnView to make it scrollable
         scrolled_window = Gtk.ScrolledWindow()
         scrolled_window.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
-        scrolled_window.set_child(tree)
+        scrolled_window.set_child(column_view)
         
         # Set size constraints for the scrolled window
         # 80% width of window and 50% height of window
@@ -119,6 +145,54 @@ class ServerPickerWindow(Gtk.ApplicationWindow):
         # Set the box as the child of the window
         self.set_child(vbox)
 
+    # Column setup and bind methods for ColumnView
+    def setup_id_column(self, factory, list_item):
+        label = Gtk.Label()
+        list_item.set_child(label)
+
+    def bind_id_column(self, factory, list_item):
+        label = list_item.get_child()
+        server = list_item.get_item()
+        label.set_text(str(server.id))
+
+    def setup_key_column(self, factory, list_item):
+        label = Gtk.Label()
+        list_item.set_child(label)
+
+    def bind_key_column(self, factory, list_item):
+        label = list_item.get_child()
+        server = list_item.get_item()
+        label.set_text(server.key)
+
+    def setup_name_column(self, factory, list_item):
+        label = Gtk.Label()
+        list_item.set_child(label)
+
+    def bind_name_column(self, factory, list_item):
+        label = list_item.get_child()
+        server = list_item.get_item()
+        label.set_text(server.name)
+
+    def setup_ip_column(self, factory, list_item):
+        label = Gtk.Label()
+        list_item.set_child(label)
+
+    def bind_ip_column(self, factory, list_item):
+        label = list_item.get_child()
+        server = list_item.get_item()
+        label.set_text(server.random_ip)
+
+    def setup_toggle_column(self, factory, list_item):
+        toggle = Gtk.CheckButton()
+        toggle.connect("toggled", self.on_toggle_toggled)
+        list_item.set_child(toggle)
+
+    def bind_toggle_column(self, factory, list_item):
+        toggle = list_item.get_child()
+        server = list_item.get_item()
+        toggle.set_active(server.selected)
+        toggle.server_data = server  # Store reference to server data
+
     # Toggle all servers between selected and unselected state
     def on_toggle_all_clicked(self, button):
         """Toggle all servers between selected and unselected state"""
@@ -127,23 +201,25 @@ class ServerPickerWindow(Gtk.ApplicationWindow):
             
         # Check if any items are currently selected
         has_selected = False
-        for row in self.store:
-            if row[5]:  # Check the boolean column (index 5)
+        for i in range(self.store.get_n_items()):
+            server = self.store.get_item(i)
+            if server.selected:
                 has_selected = True
                 break
         
         # If any are selected, unselect all. If none are selected, select all
         new_state = not has_selected
         
-        for row in self.store:
-            row[5] = new_state
+        for i in range(self.store.get_n_items()):
+            server = self.store.get_item(i)
+            server.selected = new_state
             # Update row color based on selection state
             if new_state:
-                row[6] = "lightcoral"  # Background color when selected
-                row[7] = "black"       # Text color when selected
+                server.background_color = "lightcoral"  # Background color when selected
+                server.text_color = "black"            # Text color when selected
             else:
-                row[6] = "#202023"     # Default background color
-                row[7] = "white"       # Default text color
+                server.background_color = "#202023"     # Default background color
+                server.text_color = "white"             # Default text color
         
         # Update button text based on current state
         if new_state:
@@ -157,23 +233,25 @@ class ServerPickerWindow(Gtk.ApplicationWindow):
         self.print_selected_servers()
 
     # Toggle button handler for individual rows
-    def on_toggle_toggled(self, widget, path, store):
-        # Toggle the state of the button for the selected row
-        store[path][5] = not store[path][5]
-        # Update row color based on selection state
-        if store[path][5]:
-            store[path][6] = "lightcoral"  # Background color when selected
-            store[path][7] = "black"       # Text color when selected
-        else:
-            store[path][6] = "#202023"     # Default background color
-            store[path][7] = "white"       # Default text color
+    def on_toggle_toggled(self, widget):
+        # Get the server data from the widget
+        server = getattr(widget, 'server_data', None)
+        if not server:
+            return
+            
+        # Toggle the state
+        server.selected = widget.get_active()
         
-        print(f"Toggle button state changed for row {path}: {store[path][5]}")
-        # Get server info for this row
-        server_key = store[path][1]
-        server_name = store[path][2]
-        random_ip = store[path][4]
-        print(f"Selected server: {server_name} ({server_key}) - IP: {random_ip}")
+        # Update row color based on selection state
+        if server.selected:
+            server.background_color = "lightcoral"  # Background color when selected
+            server.text_color = "black"             # Text color when selected
+        else:
+            server.background_color = "#202023"     # Default background color
+            server.text_color = "white"             # Default text color
+        
+        print(f"Toggle button state changed for server {server.id}: {server.selected}")
+        print(f"Selected server: {server.name} ({server.key}) - IP: {server.random_ip}")
         
         # Update the toggle all button text based on current selection state
         self.update_toggle_all_button_text()
@@ -188,10 +266,11 @@ class ServerPickerWindow(Gtk.ApplicationWindow):
             return
             
         selected_count = 0
-        total_count = len(self.store)
+        total_count = self.store.get_n_items()
         
-        for row in self.store:
-            if row[5]:  # Check the boolean column (index 5)
+        for i in range(total_count):
+            server = self.store.get_item(i)
+            if server.selected:
                 selected_count += 1
         
         if selected_count == 0:
@@ -208,15 +287,16 @@ class ServerPickerWindow(Gtk.ApplicationWindow):
             return
         
         selected_servers = []
-        for row in self.store:
-            if row[5]:  # Check if selected (boolean column index 5)
+        for i in range(self.store.get_n_items()):
+            server = self.store.get_item(i)
+            if server.selected:
                 server_info = {
-                    'id': row[0],
-                    'key': row[1],
-                    'name': row[2],
-                    'ip_addresses': row[3],
-                    'random_ip': row[4],
-                    'selected': row[5]
+                    'id': server.id,
+                    'key': server.key,
+                    'name': server.name,
+                    'ip_addresses': server.ip_list_str,
+                    'random_ip': server.random_ip,
+                    'selected': server.selected
                 }
                 selected_servers.append(server_info)
         
@@ -233,12 +313,12 @@ class ServerPickerWindow(Gtk.ApplicationWindow):
             print("No servers currently selected")
         print("=" * 40)
      
-    # Add CSS for rounded corners to the TreeView   
-    def apply_rounded_corners_css(self, tree):
-        """Apply CSS for rounded corners to the TreeView"""
+    # Add CSS for rounded corners to the ColumnView   
+    def apply_rounded_corners_css(self, column_view):
+        """Apply CSS for rounded corners to the ColumnView"""
         css_provider = Gtk.CssProvider()
         css = """
-        treeview {
+        columnview {
             border-radius: 12px;
             border: 2px solid #404040;
             background: #202023;
@@ -247,8 +327,8 @@ class ServerPickerWindow(Gtk.ApplicationWindow):
         """
         css_provider.load_from_data(css.encode('utf-8'))
         
-        # Apply the CSS to the TreeView
-        tree.get_style_context().add_provider(
+        # Apply the CSS to the ColumnView
+        column_view.get_style_context().add_provider(
             css_provider,
             Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
         )
@@ -262,19 +342,21 @@ class ServerPickerWindow(Gtk.ApplicationWindow):
         
         selected_servers_to_block = []
         selected_servers_to_unblock = []
-        for row in self.store:
-            if row[5]:  # Selected servers
+        
+        for i in range(self.store.get_n_items()):
+            server = self.store.get_item(i)
+            if server.selected:  # Selected servers
                 # Convert IP addresses string back to list for iptables manager
-                ip_addresses = row[3].split(', ') if row[3] != "No IPs" else []
-                server_data = [row[1], row[2], ip_addresses, row[4]]  # [key, name, ip_list, random_ip]
+                ip_addresses = server.ip_list_str.split(', ') if server.ip_list_str != "No IPs" else []
+                server_data = [server.key, server.name, ip_addresses, server.random_ip]  # [key, name, ip_list, random_ip]
                 selected_servers_to_block.append(server_data)
-                print(f"Blocking server: {row[2]} ({row[1]}) - IP: {row[4]}")
+                print(f"Blocking server: {server.name} ({server.key}) - IP: {ip_addresses}")
             else:  # Unselected servers
                 # Convert IP addresses string back to list for iptables manager
-                ip_addresses = row[3].split(', ') if row[3] != "No IPs" else []
-                server_data = [row[1], row[2], ip_addresses, row[4]]  # [key, name, ip_list, random_ip]
+                ip_addresses = server.ip_list_str.split(', ') if server.ip_list_str != "No IPs" else []
+                server_data = [server.key, server.name, ip_addresses, server.random_ip]  # [key, name, ip_list, random_ip]
                 selected_servers_to_unblock.append(server_data)
-                print(f"Unblocking server: {row[2]} ({row[1]}) - IP: {row[4]}")
+                print(f"Unblocking server: {server.name} ({server.key}) - IP: {ip_addresses}")
 
         if not selected_servers_to_block:
             print("No servers selected to block.")

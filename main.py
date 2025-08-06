@@ -35,7 +35,7 @@ class ServerPickerWindow(Gtk.ApplicationWindow):
         # create a table view with test data
         # Create a ListStore with test data (all string columns except id and boolean)
         # Added a color column for row highlighting and text color
-        store = Gtk.ListStore(int, str, str, str, str, bool, str, str)
+        store = Gtk.ListStore.new([int, str, str, str, str, bool, str, str])
         self.store = store  # Store reference for toggle all functionality
         server_data = request.get_server_data()
         if server_data:
